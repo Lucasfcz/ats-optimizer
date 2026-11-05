@@ -1,7 +1,6 @@
 package com.atsoptimizer.resume;
 
-import com.atsoptimizer.ai.AiClient;
-import com.atsoptimizer.ai.ResumeAnalysisPromptBuilder;
+import com.atsoptimizer.ai.ResumeAnalysisAI;
 import com.atsoptimizer.ai.dto.ResumeAnalysisResult;
 import com.atsoptimizer.resume.domain.Resume;
 import com.atsoptimizer.resume.domain.ResumeStatus;
@@ -17,9 +16,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -31,10 +28,7 @@ class ResumeAnalysisServiceTest {
     private ResumeRepository resumeRepository;
 
     @Mock
-    private AiClient aiClient;
-
-    @Mock
-    private ResumeAnalysisPromptBuilder promptBuilder;
+    private ResumeAnalysisAI resumeAnalysisAi;
 
     @InjectMocks
     private ResumeAnalysisService resumeAnalysisService;
@@ -46,8 +40,6 @@ class ResumeAnalysisServiceTest {
         Resume resume = new Resume(resumeId, "curriculo.pdf", "application/pdf", 1024L, "Texto do curriculo");
 
         when(resumeRepository.findById(resumeId)).thenReturn(Optional.of(resume));
-        when(promptBuilder.buildSystemPrompt()).thenReturn("System prompt");
-        when(promptBuilder.buildUserPrompt(anyString())).thenReturn("User prompt");
 
         ResumeAnalysisResult aiResult = new ResumeAnalysisResult(
                 List.of("Java", "Spring Boot", "PostgreSQL"),
@@ -63,8 +55,7 @@ class ResumeAnalysisServiceTest {
                 "Currículo altamente compatível com filtros ATS modernos"
         );
 
-        when(aiClient.sendPrompt(anyString(), anyString(), eq(ResumeAnalysisResult.class)))
-                .thenReturn(aiResult);
+        when(resumeAnalysisAi.sendToAiAnalisysResume(anyString())).thenReturn(aiResult);
 
         resumeAnalysisService.processAnalysis(resumeId, "Texto do curriculo");
 
@@ -86,10 +77,8 @@ class ResumeAnalysisServiceTest {
         Resume resume = new Resume(resumeId, "curriculo.pdf", "application/pdf", 1024L, "Texto do curriculo");
 
         when(resumeRepository.findById(resumeId)).thenReturn(Optional.of(resume));
-        when(promptBuilder.buildSystemPrompt()).thenReturn("System prompt");
-        when(promptBuilder.buildUserPrompt(anyString())).thenReturn("User prompt");
 
-        when(aiClient.sendPrompt(anyString(), anyString(), eq(ResumeAnalysisResult.class)))
+        when(resumeAnalysisAi.sendToAiAnalisysResume(anyString()))
                 .thenThrow(new RuntimeException("OpenAI API timeout"));
 
         resumeAnalysisService.processAnalysis(resumeId, "Texto do curriculo");

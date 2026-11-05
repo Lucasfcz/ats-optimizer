@@ -1,11 +1,24 @@
 package com.atsoptimizer.ai;
 
+import com.atsoptimizer.ai.dto.ResumeAnalysisResult;
 import org.springframework.stereotype.Component;
 
 @Component
-public class ResumeAnalysisPromptBuilder {
+public class ResumeAnalysisAI {
 
-    public String buildSystemPrompt() {
+    private final AiClient aiClient;
+
+    public ResumeAnalysisAI(AiClient aiClient) {
+        this.aiClient = aiClient;
+    }
+
+    public ResumeAnalysisResult sendToAiAnalisysResume(String resumeText) {
+        String systemPrompt = buildSystemPrompt();
+        String userPrompt = buildUserPrompt(resumeText);
+        return aiClient.sendPrompt(systemPrompt, userPrompt, ResumeAnalysisResult.class);
+    }
+
+    private String buildSystemPrompt() {
         return """
                 Você é um especialista sênior em Recrutamento & Seleção (Tech Recruiter) e Engenheiro de Sistemas ATS (Applicant Tracking Systems como Taleo, Greenhouse, Workday, Lever e Gupy).
                 
@@ -24,7 +37,7 @@ public class ResumeAnalysisPromptBuilder {
                 """;
     }
 
-    public String buildUserPrompt(String resumeText) {
+    private String buildUserPrompt(String resumeText) {
         return """
                 Analise minuciosamente o seguinte currículo extraído de forma bruta:
                 

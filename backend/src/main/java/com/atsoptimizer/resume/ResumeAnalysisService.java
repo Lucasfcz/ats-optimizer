@@ -1,7 +1,6 @@
 package com.atsoptimizer.resume;
 
-import com.atsoptimizer.ai.AiClient;
-import com.atsoptimizer.ai.ResumeAnalysisPromptBuilder;
+import com.atsoptimizer.ai.ResumeAnalysisAI;
 import com.atsoptimizer.ai.dto.ResumeAnalysisResult;
 import com.atsoptimizer.resume.domain.Resume;
 import com.atsoptimizer.resume.domain.ResumeAnalysis;
@@ -19,17 +18,14 @@ public class ResumeAnalysisService {
     private static final Logger log = LoggerFactory.getLogger(ResumeAnalysisService.class);
 
     private final ResumeRepository resumeRepository;
-    private final AiClient aiClient;
-    private final ResumeAnalysisPromptBuilder promptBuilder;
+    private final ResumeAnalysisAI resumeAnalysisAi;
 
     public ResumeAnalysisService(
             ResumeRepository resumeRepository,
-            AiClient aiClient,
-            ResumeAnalysisPromptBuilder promptBuilder
+            ResumeAnalysisAI resumeAnalysisAi
     ) {
         this.resumeRepository = resumeRepository;
-        this.aiClient = aiClient;
-        this.promptBuilder = promptBuilder;
+        this.resumeAnalysisAi = resumeAnalysisAi;
     }
 
     @Transactional
@@ -46,13 +42,8 @@ public class ResumeAnalysisService {
             resume.markAsProcessing();
             resumeRepository.save(resume);
 
-            String systemPrompt = promptBuilder.buildSystemPrompt();
-            String userPrompt = promptBuilder.buildUserPrompt(extractedText);
+            ResumeAnalysisResult dto = resumeAnalysisAi.sendToAiAnalisysResume(extractedText);
 
-            // Execute generic prompt on AiClient with typed target DTO
-            ResumeAnalysisResult dto = aiClient.sendPrompt(systemPrompt, userPrompt, ResumeAnalysisResult.class);
-
-            // Create domain analysis object binding system metadata (resumeId, timestamp) with AI response
             ResumeAnalysis analysis = new ResumeAnalysis(
                     resumeId,
                     dto.score(),
