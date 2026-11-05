@@ -4,6 +4,7 @@ import com.atsoptimizer.infra.ai.ResumeAnalysisAI;
 import com.atsoptimizer.infra.ai.dto.ResumeAnalysisResult;
 import com.atsoptimizer.modules.resume.domain.Resume;
 import com.atsoptimizer.modules.resume.domain.ResumeAnalysis;
+import com.atsoptimizer.modules.resume.exception.ResumeNotFoundException;
 import com.atsoptimizer.modules.resume.repository.ResumeRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,11 +33,8 @@ public class ResumeAnalysisService {
     public void processAnalysis(Long resumeId, String extractedText) {
         log.info("Starting AI analysis pipeline for resume id: {}", resumeId);
 
-        Resume resume = resumeRepository.findById(resumeId).orElse(null);
-        if (resume == null) {
-            log.error("Resume not found with id: {}. Skipping analysis.", resumeId);
-            return;
-        }
+        Resume resume = resumeRepository.findById(resumeId)
+                .orElseThrow(() -> new ResumeNotFoundException(resumeId));
 
         try {
             resume.markAsProcessing();
@@ -66,8 +64,7 @@ public class ResumeAnalysisService {
             log.info("Successfully completed AI analysis for resume [{}]. ATS Score: {}%", resumeId, dto.score());
         } catch (Exception e) {
             log.error("Error during AI analysis for resume [{}]: {}", resumeId, e.getMessage(), e);
-            resume.failAnalysis(e.getMessage());
-            resumeRepository.save(resume);
+            throw e;
         }
     }
 }

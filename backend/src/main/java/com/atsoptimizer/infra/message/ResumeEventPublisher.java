@@ -1,6 +1,7 @@
-package com.atsoptimizer.infra.queue;
+package com.atsoptimizer.infra.message;
 
-import com.atsoptimizer.infra.queue.dto.ResumeAnalysisMessage;
+import com.atsoptimizer.infra.message.dto.ResumeAnalysisMessage;
+import com.atsoptimizer.infra.message.exception.MessagePublishingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -17,7 +18,7 @@ public class ResumeEventPublisher {
     @Value("${ats.rabbitmq.exchange:ats.exchange}")
     private String exchange;
 
-    @Value("${ats.rabbitmq.routing-key:resume.analyze}")
+    @Value("${ats.rabbitmq.routing-key:resume.ai.analysis}")
     private String routingKey;
 
     public ResumeEventPublisher(RabbitTemplate rabbitTemplate) {
@@ -32,7 +33,7 @@ public class ResumeEventPublisher {
             log.info("Successfully published resume [{}] to RabbitMQ", message.resumeId());
         } catch (Exception e) {
             log.error("Failed to publish resume [{}] to RabbitMQ: {}", message.resumeId(), e.getMessage(), e);
-            throw new RuntimeException("Could not publish resume analysis message to queue", e);
+            throw new MessagePublishingException("Could not publish resume analysis message to queue", e);
         }
     }
 }

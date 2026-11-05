@@ -1,4 +1,4 @@
-package com.atsoptimizer.infra.queue.dto;
+package com.atsoptimizer.infra.message.dto;
 
 import java.io.Serializable;
 

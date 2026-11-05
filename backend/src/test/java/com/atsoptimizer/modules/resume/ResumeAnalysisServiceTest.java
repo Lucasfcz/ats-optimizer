@@ -2,8 +2,10 @@ package com.atsoptimizer.modules.resume;
 
 import com.atsoptimizer.infra.ai.ResumeAnalysisAI;
 import com.atsoptimizer.infra.ai.dto.ResumeAnalysisResult;
+import com.atsoptimizer.infra.ai.exception.AiProcessingException;
 import com.atsoptimizer.modules.resume.domain.Resume;
 import com.atsoptimizer.modules.resume.domain.ResumeStatus;
+import com.atsoptimizer.modules.resume.exception.ResumeNotFoundException;
 import com.atsoptimizer.modules.resume.repository.ResumeRepository;
 import com.atsoptimizer.modules.resume.service.ResumeAnalysisService;
 import org.junit.jupiter.api.DisplayName;
@@ -17,6 +19,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -72,21 +75,31 @@ class ResumeAnalysisServiceTest {
     }
 
     @Test
-    @DisplayName("Should mark resume as FAILED through semantic failAnalysis when AI client throws exception")
-    void shouldHandleAiFailureGracefully() {
+    @DisplayName("Should rethrow AiProcessingException when AI client fails so Spring AMQP can retry and DLQ")
+    void shouldRethrowAiProcessingExceptionWhenAiFails() {
         Long resumeId = 1L;
         Resume resume = new Resume(resumeId, "curriculo.pdf", "application/pdf", 1024L, "Texto do curriculo");
 
         when(resumeRepository.findById(resumeId)).thenReturn(Optional.of(resume));
 
         when(resumeAnalysisAi.sendToAiAnalisysResume(anyString()))
-                .thenThrow(new RuntimeException("OpenAI API timeout"));
+                .thenThrow(new AiProcessingException("OpenAI API timeout"));
 
-        resumeAnalysisService.processAnalysis(resumeId, "Texto do curriculo");
+        assertThatThrownBy(() -> resumeAnalysisService.processAnalysis(resumeId, "Texto do curriculo"))
+                .isInstanceOf(AiProcessingException.class)
+                .hasMessageContaining("OpenAI API timeout");
 
-        assertThat(resume.getStatus()).isEqualTo(ResumeStatus.FAILED);
-        assertThat(resume.getErrorMessage()).contains("OpenAI API timeout");
+        assertThat(resume.getStatus()).isEqualTo(ResumeStatus.PROCESSING);
+        verify(resumeRepository, times(1)).save(resume);
+    }
 
-        verify(resumeRepository, times(2)).save(resume);
+    @Test
+    @DisplayName("Should throw ResumeNotFoundException when resume ID does not exist in database")
+    void shouldThrowResumeNotFoundExceptionWhenResumeDoesNotExist() {
+        when(resumeRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> resumeAnalysisService.processAnalysis(999L, "Texto"))
+                .isInstanceOf(ResumeNotFoundException.class)
+                .hasMessage("Resume not found with id: 999");
     }
 }

@@ -1,6 +1,6 @@
-package com.atsoptimizer.infra.queue;
+package com.atsoptimizer.infra.message;
 
-import com.atsoptimizer.infra.queue.dto.ResumeAnalysisMessage;
+import com.atsoptimizer.infra.message.dto.ResumeAnalysisMessage;
 import com.atsoptimizer.modules.resume.service.ResumeAnalysisService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,7 +18,7 @@ public class ResumeAnalysisListener {
         this.resumeAnalysisService = resumeAnalysisService;
     }
 
-    @RabbitListener(queues = "${ats.rabbitmq.queue:ats.resume.analysis.queue}")
+    @RabbitListener(queues = "${ats.rabbitmq.queue:resume.ai.analysis}")
     public void handleResumeAnalysis(ResumeAnalysisMessage message) {
         log.info("Received message from RabbitMQ queue for resume [{}] ({})", message.resumeId(), message.fileName());
         resumeAnalysisService.processAnalysis(message.resumeId(), message.extractedText());

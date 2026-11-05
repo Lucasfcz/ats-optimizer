@@ -1,8 +1,8 @@
 package com.atsoptimizer.modules.resume;
 
 import com.atsoptimizer.infra.extraction.DocumentTextExtractor;
-import com.atsoptimizer.infra.queue.ResumeEventPublisher;
-import com.atsoptimizer.infra.queue.dto.ResumeAnalysisMessage;
+import com.atsoptimizer.infra.message.ResumeEventPublisher;
+import com.atsoptimizer.infra.message.dto.ResumeAnalysisMessage;
 import com.atsoptimizer.modules.resume.domain.Resume;
 import com.atsoptimizer.modules.resume.domain.ResumeStatus;
 import com.atsoptimizer.modules.resume.dto.ResumeDetailsDto;

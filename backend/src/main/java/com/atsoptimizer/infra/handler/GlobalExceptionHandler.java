@@ -3,6 +3,7 @@ package com.atsoptimizer.infra.handler;
 import com.atsoptimizer.infra.ai.exception.AiProcessingException;
 import com.atsoptimizer.infra.extraction.exception.DocumentExtractionException;
 import com.atsoptimizer.infra.handler.dto.ErrorResponse;
+import com.atsoptimizer.infra.message.exception.MessagePublishingException;
 import com.atsoptimizer.modules.resume.exception.EmptyResumeFileException;
 import com.atsoptimizer.modules.resume.exception.ResumeDomainException;
 import com.atsoptimizer.modules.resume.exception.ResumeFileReadingException;
@@ -67,6 +68,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException ex, HttpServletRequest request) {
         log.warn("Validation error: {}", ex.getMessage());
         return buildResponse(HttpStatus.BAD_REQUEST, "Bad Request", ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(MessagePublishingException.class)
+    public ResponseEntity<ErrorResponse> handleMessagePublishingException(MessagePublishingException ex, HttpServletRequest request) {
+        log.error("Failed to enqueue message to RabbitMQ: {}", ex.getMessage(), ex);
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Message Queue Error", "Unable to queue resume for analysis. Please try again later.", request);
     }
 
     @ExceptionHandler(Exception.class)

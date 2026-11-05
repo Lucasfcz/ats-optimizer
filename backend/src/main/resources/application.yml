@@ -31,6 +31,14 @@ spring:
     port: ${SPRING_RABBITMQ_PORT:5672}
     username: ${SPRING_RABBITMQ_USERNAME:guest}
     password: ${SPRING_RABBITMQ_PASSWORD:guest}
+    listener:
+      simple:
+        retry:
+          enabled: true
+          initial-interval: 2000ms
+          max-attempts: 3
+          multiplier: 2.0
+          max-interval: 10000ms
 
   ai:
     openai:
@@ -44,8 +52,11 @@ spring:
 ats:
   rabbitmq:
     exchange: ats.exchange
-    queue: ats.resume.analysis.queue
-    routing-key: resume.analyze
+    queue: resume.ai.analysis
+    routing-key: resume.ai.analysis
+    dlx-exchange: ats.exchange.dlx
+    dlq-queue: resume.ai.analysis.dlq
+    dlq-routing-key: resume.ai.analysis.dlq
 
 springdoc:
   api-docs:
