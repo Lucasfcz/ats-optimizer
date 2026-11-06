@@ -1,5 +1,6 @@
 package com.atsoptimizer.infra.ai;
 
+import com.atsoptimizer.infra.ai.dto.ContactInfoDto;
 import com.atsoptimizer.infra.ai.dto.ResumeAnalysisResult;
 import com.atsoptimizer.infra.ai.exception.AiProcessingException;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,18 +36,27 @@ class AiClientIntegrationTest {
     @Test
     @DisplayName("Should successfully bind generic class type to entity response from ChatClient")
     void shouldSuccessfullySendPromptWithStructuredOutput() {
+        ContactInfoDto contact = new ContactInfoDto("11999999999", "dev@example.com", "São Paulo", "linkedin.com/in/dev", List.of());
         ResumeAnalysisResult expected = new ResumeAnalysisResult(
-                List.of("Java", "Spring Boot"),
-                List.of("Docker"),
+                "Jane Doe",
+                "Senior Backend Engineer",
+                contact,
+                "Experienced backend software engineer",
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
                 "Backend Engineer",
                 "Perfil forte",
                 "Boa estrutura",
+                "Alta compatibilidade",
+                List.of("Java", "Spring Boot"),
+                List.of("Docker"),
                 List.of(),
                 List.of("Clareza"),
                 List.of("Métricas"),
                 List.of("Adicionar mais dados"),
-                85,
-                "Alta compatibilidade"
+                85
         );
 
         ChatClient mockChatClient = builder.build();
@@ -64,6 +74,8 @@ class AiClientIntegrationTest {
         );
 
         assertThat(result).isNotNull();
+        assertThat(result.candidateName()).isEqualTo("Jane Doe");
+        assertThat(result.headline()).isEqualTo("Senior Backend Engineer");
         assertThat(result.score()).isEqualTo(85);
         assertThat(result.inferredObjective()).isEqualTo("Backend Engineer");
         assertThat(result.keywords()).containsExactly("Java", "Spring Boot");

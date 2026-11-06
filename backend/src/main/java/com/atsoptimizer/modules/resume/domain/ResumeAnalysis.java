@@ -9,6 +9,14 @@ public class ResumeAnalysis implements Serializable {
 
     private Long resumeId;
     private Integer score;
+    private String candidateName;
+    private String headline;
+    private ContactInfo contactInfo;
+    private String about;
+    private List<ExperienceItem> experiences;
+    private List<EducationItem> education;
+    private List<CertificationItem> certifications;
+    private List<LanguageItem> languages;
     private String inferredObjective;
     private String overallProfile;
     private String structureEvaluation;
@@ -27,6 +35,14 @@ public class ResumeAnalysis implements Serializable {
     public ResumeAnalysis(
             Long resumeId,
             Integer score,
+            String candidateName,
+            String headline,
+            ContactInfo contactInfo,
+            String about,
+            List<ExperienceItem> experiences,
+            List<EducationItem> education,
+            List<CertificationItem> certifications,
+            List<LanguageItem> languages,
             String inferredObjective,
             String overallProfile,
             String structureEvaluation,
@@ -41,6 +57,14 @@ public class ResumeAnalysis implements Serializable {
     ) {
         this.resumeId = resumeId;
         this.score = score;
+        this.candidateName = candidateName;
+        this.headline = headline;
+        this.contactInfo = contactInfo;
+        this.about = about;
+        this.experiences = experiences != null ? List.copyOf(experiences) : Collections.emptyList();
+        this.education = education != null ? List.copyOf(education) : Collections.emptyList();
+        this.certifications = certifications != null ? List.copyOf(certifications) : Collections.emptyList();
+        this.languages = languages != null ? List.copyOf(languages) : Collections.emptyList();
         this.inferredObjective = inferredObjective;
         this.overallProfile = overallProfile;
         this.structureEvaluation = structureEvaluation;
@@ -60,6 +84,38 @@ public class ResumeAnalysis implements Serializable {
 
     public Integer getScore() {
         return score;
+    }
+
+    public String getCandidateName() {
+        return candidateName;
+    }
+
+    public String getHeadline() {
+        return headline;
+    }
+
+    public ContactInfo getContactInfo() {
+        return contactInfo;
+    }
+
+    public String getAbout() {
+        return about;
+    }
+
+    public List<ExperienceItem> getExperiences() {
+        return experiences;
+    }
+
+    public List<EducationItem> getEducation() {
+        return education;
+    }
+
+    public List<CertificationItem> getCertifications() {
+        return certifications;
+    }
+
+    public List<LanguageItem> getLanguages() {
+        return languages;
     }
 
     public String getInferredObjective() {
