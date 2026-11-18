@@ -37,7 +37,7 @@ public class ResumeController {
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Realiza upload de currículo para análise ATS", description = "Recebe o arquivo (PDF, DOCX, TXT), extrai o texto de forma síncrona com Apache Tika e enfileira para auditoria de IA")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Currículo enviado e enfileirado com sucesso", content = @Content(schema = @Schema(implementation = ResumeResponseDto.class))),
+            @ApiResponse(responseCode = "202", description = "Currículo enviado e enfileirado com sucesso", content = @Content(schema = @Schema(implementation = ResumeResponseDto.class))),
             @ApiResponse(responseCode = "400", description = "Arquivo inválido, vazio ou não suportado", content = @Content),
             @ApiResponse(responseCode = "413", description = "Arquivo excede o limite máximo permitido de 15MB", content = @Content)
     })
@@ -46,7 +46,7 @@ public class ResumeController {
             @RequestParam("file") MultipartFile file
     ) {
         ResumeResponseDto response = resumeService.uploadAndProcess(file);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
     }
 
     @GetMapping("/{id}")

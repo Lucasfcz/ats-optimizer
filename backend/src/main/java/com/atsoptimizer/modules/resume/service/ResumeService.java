@@ -3,6 +3,7 @@ package com.atsoptimizer.modules.resume.service;
 import com.atsoptimizer.infra.extraction.DocumentTextExtractor;
 import com.atsoptimizer.infra.message.ResumeEventPublisher;
 import com.atsoptimizer.infra.message.dto.ResumeAnalysisMessage;
+import com.atsoptimizer.modules.jobmatch.repository.JobMatchRepository;
 import com.atsoptimizer.modules.resume.domain.Resume;
 import com.atsoptimizer.modules.resume.dto.ResumeDetailsDto;
 import com.atsoptimizer.modules.resume.dto.ResumeResponseDto;
@@ -25,15 +26,18 @@ public class ResumeService {
     private static final Logger log = LoggerFactory.getLogger(ResumeService.class);
 
     private final ResumeRepository resumeRepository;
+    private final JobMatchRepository jobMatchRepository;
     private final DocumentTextExtractor documentTextExtractor;
     private final ResumeEventPublisher resumeEventPublisher;
 
     public ResumeService(
             ResumeRepository resumeRepository,
+            JobMatchRepository jobMatchRepository,
             DocumentTextExtractor documentTextExtractor,
             ResumeEventPublisher resumeEventPublisher
     ) {
         this.resumeRepository = resumeRepository;
+        this.jobMatchRepository = jobMatchRepository;
         this.documentTextExtractor = documentTextExtractor;
         this.resumeEventPublisher = resumeEventPublisher;
     }
@@ -56,7 +60,12 @@ public class ResumeService {
             throw new ResumeFileReadingException(fileName, e);
         }
 
-        // 2. Persist to database (constructor initializes status = UPLOADED)
+        // 2. Delete previous resume(s) and associated job matches only after successful text extraction
+        jobMatchRepository.deleteAllInBatch();
+        resumeRepository.deleteAllInBatch();
+        log.info("Removed previous resume records and associated job matches before persisting new upload");
+
+        // 3. Persist new resume to database (constructor initializes status = UPLOADED)
         Resume resume = new Resume(
                 fileName,
                 file.getContentType(),

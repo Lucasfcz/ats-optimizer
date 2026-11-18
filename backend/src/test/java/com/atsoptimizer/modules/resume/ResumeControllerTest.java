@@ -43,8 +43,8 @@ class ResumeControllerTest {
     private ResumeService resumeService;
 
     @Test
-    @DisplayName("POST /api/v1/resumes/upload - Should return 201 Created with ResumeResponseDto on valid upload")
-    void shouldReturnCreatedWhenUploadingValidFile() throws Exception {
+    @DisplayName("POST /api/v1/resumes/upload - Should return 202 Accepted with ResumeResponseDto on valid upload")
+    void shouldReturnAcceptedWhenUploadingValidFile() throws Exception {
         MockMultipartFile file = new MockMultipartFile(
                 "file",
                 "curriculo.pdf",
@@ -65,7 +65,7 @@ class ResumeControllerTest {
         when(resumeService.uploadAndProcess(any(MultipartFile.class))).thenReturn(responseDto);
 
         mockMvc.perform(multipart("/api/v1/resumes/upload").file(file))
-                .andExpect(status().isCreated())
+                .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.fileName").value("curriculo.pdf"))
                 .andExpect(jsonPath("$.status").value("UPLOADED"));

@@ -1,11 +1,12 @@
 package com.atsoptimizer.modules.resume;
 
 import com.atsoptimizer.infra.extraction.DocumentTextExtractor;
+import com.atsoptimizer.infra.extraction.exception.DocumentExtractionException;
 import com.atsoptimizer.infra.message.ResumeEventPublisher;
 import com.atsoptimizer.infra.message.dto.ResumeAnalysisMessage;
+import com.atsoptimizer.modules.jobmatch.repository.JobMatchRepository;
 import com.atsoptimizer.modules.resume.domain.Resume;
 import com.atsoptimizer.modules.resume.domain.ResumeStatus;
-import com.atsoptimizer.modules.resume.dto.ResumeDetailsDto;
 import com.atsoptimizer.modules.resume.dto.ResumeResponseDto;
 import com.atsoptimizer.modules.resume.exception.EmptyResumeFileException;
 import com.atsoptimizer.modules.resume.exception.ResumeNotFoundException;
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -27,7 +29,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -35,6 +40,9 @@ class ResumeServiceTest {
 
     @Mock
     private ResumeRepository resumeRepository;
+
+    @Mock
+    private JobMatchRepository jobMatchRepository;
 
     @Mock
     private DocumentTextExtractor documentTextExtractor;
@@ -46,7 +54,7 @@ class ResumeServiceTest {
     private ResumeService resumeService;
 
     @Test
-    @DisplayName("Should successfully upload resume, extract text, persist entity and publish RabbitMQ message")
+    @DisplayName("Should delete previous job matches and resumes, persist new resume, and publish RabbitMQ message")
     void shouldUploadAndProcessResumeSuccessfully() {
         MockMultipartFile file = new MockMultipartFile(
                 "file",
@@ -75,12 +83,40 @@ class ResumeServiceTest {
         assertThat(response.fileName()).isEqualTo("curriculo.pdf");
         assertThat(response.status()).isEqualTo(ResumeStatus.UPLOADED);
 
+        InOrder order = inOrder(documentTextExtractor, jobMatchRepository, resumeRepository, resumeEventPublisher);
+        order.verify(documentTextExtractor).extractText(any(InputStream.class), eq("curriculo.pdf"));
+        order.verify(jobMatchRepository).deleteAllInBatch();
+        order.verify(resumeRepository).deleteAllInBatch();
+        order.verify(resumeRepository).save(any(Resume.class));
+
         ArgumentCaptor<ResumeAnalysisMessage> messageCaptor = ArgumentCaptor.forClass(ResumeAnalysisMessage.class);
-        verify(resumeEventPublisher).publishResumeForAnalysis(messageCaptor.capture());
+        order.verify(resumeEventPublisher).publishResumeForAnalysis(messageCaptor.capture());
         ResumeAnalysisMessage publishedMessage = messageCaptor.getValue();
         assertThat(publishedMessage.resumeId()).isEqualTo(1L);
         assertThat(publishedMessage.fileName()).isEqualTo("curriculo.pdf");
         assertThat(publishedMessage.extractedText()).isEqualTo("Texto limpo extraido do curriculo");
+    }
+
+    @Test
+    @DisplayName("Should preserve existing resumes when text extraction fails on corrupted upload")
+    void shouldNotDeletePreviousResumesWhenExtractionFails() {
+        MockMultipartFile corruptedFile = new MockMultipartFile(
+                "file",
+                "corrompido.pdf",
+                "application/pdf",
+                "dados corrompidos".getBytes()
+        );
+
+        when(documentTextExtractor.extractText(any(InputStream.class), eq("corrompido.pdf")))
+                .thenThrow(new DocumentExtractionException("Corrupted PDF"));
+
+        assertThatThrownBy(() -> resumeService.uploadAndProcess(corruptedFile))
+                .isInstanceOf(DocumentExtractionException.class);
+
+        verifyNoInteractions(jobMatchRepository);
+        verify(resumeRepository, never()).deleteAllInBatch();
+        verify(resumeRepository, never()).save(any());
+        verifyNoInteractions(resumeEventPublisher);
     }
 
     @Test
@@ -96,6 +132,9 @@ class ResumeServiceTest {
         assertThatThrownBy(() -> resumeService.uploadAndProcess(emptyFile))
                 .isInstanceOf(EmptyResumeFileException.class)
                 .hasMessage("Uploaded resume file cannot be empty");
+
+        verifyNoInteractions(jobMatchRepository);
+        verifyNoInteractions(resumeRepository);
     }
 
     @Test
