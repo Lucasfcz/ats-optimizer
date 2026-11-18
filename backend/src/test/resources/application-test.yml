@@ -19,12 +19,3 @@ spring:
     listener:
       simple:
         auto-startup: false
-
-ats:
-  rabbitmq:
-    exchange: ats.exchange.test
-    queue: resume.ai.analysis.test
-    routing-key: resume.ai.analysis.test
-    dlx-exchange: ats.exchange.dlx.test
-    dlq-queue: resume.ai.analysis.dlq.test
-    dlq-routing-key: resume.ai.analysis.dlq.test

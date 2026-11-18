@@ -21,7 +21,7 @@ public class ResumeAnalysisDlqListener {
         this.resumeRepository = resumeRepository;
     }
 
-    @RabbitListener(queues = "${ats.rabbitmq.dlq-queue:resume.ai.analysis.dlq}")
+    @RabbitListener(queues = RabbitMQConfig.RESUME_ANALYSIS_DLQ)
     @Transactional
     public void handleDeadLetterMessage(
             ResumeAnalysisMessage message,

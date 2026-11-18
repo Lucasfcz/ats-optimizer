@@ -49,15 +49,6 @@ spring:
           model: ${SPRING_AI_OPENAI_MODEL:${OPENAI_MODEL:gpt-4o-mini}}
           temperature: 0.2
 
-ats:
-  rabbitmq:
-    exchange: ats.exchange
-    queue: resume.ai.analysis
-    routing-key: resume.ai.analysis
-    dlx-exchange: ats.exchange.dlx
-    dlq-queue: resume.ai.analysis.dlq
-    dlq-routing-key: resume.ai.analysis.dlq
-
 springdoc:
   api-docs:
     path: /v3/api-docs

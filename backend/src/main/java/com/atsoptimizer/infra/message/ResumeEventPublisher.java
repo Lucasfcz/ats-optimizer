@@ -5,7 +5,6 @@ import com.atsoptimizer.infra.message.exception.MessagePublishingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -15,21 +14,15 @@ public class ResumeEventPublisher {
 
     private final RabbitTemplate rabbitTemplate;
 
-    @Value("${ats.rabbitmq.exchange:ats.exchange}")
-    private String exchange;
-
-    @Value("${ats.rabbitmq.routing-key:resume.ai.analysis}")
-    private String routingKey;
-
     public ResumeEventPublisher(RabbitTemplate rabbitTemplate) {
         this.rabbitTemplate = rabbitTemplate;
     }
 
     public void publishResumeForAnalysis(ResumeAnalysisMessage message) {
         log.info("Publishing resume [{}] to topic exchange [{}] with routing key [{}]",
-                message.resumeId(), exchange, routingKey);
+                message.resumeId(), RabbitMQConfig.EXCHANGE, RabbitMQConfig.RESUME_ANALYSIS_QUEUE);
         try {
-            rabbitTemplate.convertAndSend(exchange, routingKey, message);
+            rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE, RabbitMQConfig.RESUME_ANALYSIS_QUEUE, message);
             log.info("Successfully published resume [{}] to RabbitMQ", message.resumeId());
         } catch (Exception e) {
             log.error("Failed to publish resume [{}] to RabbitMQ: {}", message.resumeId(), e.getMessage(), e);

@@ -50,6 +50,33 @@ class RabbitMQIntegrationTest {
     private Binding atsDeadLetterBinding;
 
     @Autowired
+    private Queue jobMatchParseQueue;
+
+    @Autowired
+    private Binding jobMatchParseBinding;
+
+    @Autowired
+    private Queue jobMatchAuditQueue;
+
+    @Autowired
+    private Binding jobMatchAuditBinding;
+
+    @Autowired
+    private Queue jobMatchGenerateQueue;
+
+    @Autowired
+    private Binding jobMatchGenerateBinding;
+
+    @Autowired
+    private Queue jobMatchParseDlqQueue;
+
+    @Autowired
+    private Queue jobMatchAuditDlqQueue;
+
+    @Autowired
+    private Queue jobMatchGenerateDlqQueue;
+
+    @Autowired
     private MessageConverter jsonMessageConverter;
 
     @Autowired
@@ -74,41 +101,60 @@ class RabbitMQIntegrationTest {
     private ResumeAnalysisDlqListener resumeAnalysisDlqListener;
 
     @Test
-    @DisplayName("Should verify Main RabbitMQ Topic Exchange, Queue and Binding topology configuration")
+    @DisplayName("Should verify Main RabbitMQ Topic Exchange, Queues and exact Bindings topology configuration")
     void shouldVerifyRabbitMQTopologyConfiguration() {
         assertThat(atsTopicExchange).isNotNull();
-        assertThat(atsTopicExchange.getName()).isEqualTo("ats.exchange.test");
+        assertThat(atsTopicExchange.getName()).isEqualTo(RabbitMQConfig.EXCHANGE);
         assertThat(atsTopicExchange.getType()).isEqualTo("topic");
         assertThat(atsTopicExchange.isDurable()).isTrue();
 
-        assertThat(atsResumeAnalysisQueue).isNotNull();
-        assertThat(atsResumeAnalysisQueue.getName()).isEqualTo("resume.ai.analysis.test");
+        assertThat(atsResumeAnalysisQueue.getName()).isEqualTo(RabbitMQConfig.RESUME_ANALYSIS_QUEUE);
         assertThat(atsResumeAnalysisQueue.isDurable()).isTrue();
+        assertThat(atsResumeAnalysisBinding.getExchange()).isEqualTo(RabbitMQConfig.EXCHANGE);
+        assertThat(atsResumeAnalysisBinding.getDestination()).isEqualTo(RabbitMQConfig.RESUME_ANALYSIS_QUEUE);
+        assertThat(atsResumeAnalysisBinding.getRoutingKey()).isEqualTo(RabbitMQConfig.RESUME_ANALYSIS_QUEUE);
 
-        assertThat(atsResumeAnalysisBinding).isNotNull();
-        assertThat(atsResumeAnalysisBinding.getExchange()).isEqualTo("ats.exchange.test");
-        assertThat(atsResumeAnalysisBinding.getDestination()).isEqualTo("resume.ai.analysis.test");
-        assertThat(atsResumeAnalysisBinding.getRoutingKey()).isEqualTo("resume.ai.analysis.test");
+        assertThat(jobMatchParseQueue.getName()).isEqualTo(RabbitMQConfig.JOB_MATCH_PARSE_QUEUE);
+        assertThat(jobMatchParseBinding.getRoutingKey()).isEqualTo(RabbitMQConfig.JOB_MATCH_PARSE_QUEUE);
+
+        assertThat(jobMatchAuditQueue.getName()).isEqualTo(RabbitMQConfig.JOB_MATCH_AUDIT_QUEUE);
+        assertThat(jobMatchAuditBinding.getRoutingKey()).isEqualTo(RabbitMQConfig.JOB_MATCH_AUDIT_QUEUE);
+
+        assertThat(jobMatchGenerateQueue.getName()).isEqualTo(RabbitMQConfig.JOB_MATCH_GENERATE_QUEUE);
+        assertThat(jobMatchGenerateBinding.getRoutingKey()).isEqualTo(RabbitMQConfig.JOB_MATCH_GENERATE_QUEUE);
     }
 
     @Test
-    @DisplayName("Should verify Dead Letter Exchange (DLX) and Queue (DLQ) topology configuration")
+    @DisplayName("Should verify Dead Letter Exchange (DLX), DLQs and dynamic MessageRecoverer topology")
     void shouldVerifyDeadLetterTopologyConfiguration() {
         assertThat(atsDeadLetterExchange).isNotNull();
-        assertThat(atsDeadLetterExchange.getName()).isEqualTo("ats.exchange.dlx.test");
+        assertThat(atsDeadLetterExchange.getName()).isEqualTo(RabbitMQConfig.DLX_EXCHANGE);
         assertThat(atsDeadLetterExchange.getType()).isEqualTo("topic");
         assertThat(atsDeadLetterExchange.isDurable()).isTrue();
 
-        assertThat(atsDeadLetterQueue).isNotNull();
-        assertThat(atsDeadLetterQueue.getName()).isEqualTo("resume.ai.analysis.dlq.test");
+        assertThat(atsDeadLetterQueue.getName()).isEqualTo(RabbitMQConfig.RESUME_ANALYSIS_DLQ);
         assertThat(atsDeadLetterQueue.isDurable()).isTrue();
+        assertThat(atsDeadLetterBinding.getExchange()).isEqualTo(RabbitMQConfig.DLX_EXCHANGE);
+        assertThat(atsDeadLetterBinding.getDestination()).isEqualTo(RabbitMQConfig.RESUME_ANALYSIS_DLQ);
+        assertThat(atsDeadLetterBinding.getRoutingKey()).isEqualTo(RabbitMQConfig.RESUME_ANALYSIS_DLQ);
 
-        assertThat(atsDeadLetterBinding).isNotNull();
-        assertThat(atsDeadLetterBinding.getExchange()).isEqualTo("ats.exchange.dlx.test");
-        assertThat(atsDeadLetterBinding.getDestination()).isEqualTo("resume.ai.analysis.dlq.test");
-        assertThat(atsDeadLetterBinding.getRoutingKey()).isEqualTo("resume.ai.analysis.dlq.test");
+        assertThat(jobMatchParseDlqQueue.getName()).isEqualTo(RabbitMQConfig.JOB_MATCH_PARSE_DLQ);
+        assertThat(jobMatchAuditDlqQueue.getName()).isEqualTo(RabbitMQConfig.JOB_MATCH_AUDIT_DLQ);
+        assertThat(jobMatchGenerateDlqQueue.getName()).isEqualTo(RabbitMQConfig.JOB_MATCH_GENERATE_DLQ);
 
         assertThat(messageRecoverer).isInstanceOf(RepublishMessageRecoverer.class);
+
+        org.springframework.amqp.core.MessageProperties props = new org.springframework.amqp.core.MessageProperties();
+        props.setReceivedRoutingKey(RabbitMQConfig.JOB_MATCH_AUDIT_QUEUE);
+        Message failedMessage = new Message("{}".getBytes(), props);
+
+        messageRecoverer.recover(failedMessage, new RuntimeException("AI failure"));
+
+        verify(rabbitTemplate).send(
+                org.mockito.ArgumentMatchers.eq(RabbitMQConfig.DLX_EXCHANGE),
+                org.mockito.ArgumentMatchers.eq(RabbitMQConfig.JOB_MATCH_AUDIT_DLQ),
+                org.mockito.ArgumentMatchers.any(Message.class)
+        );
     }
 
     @Test
@@ -148,8 +194,8 @@ class RabbitMQIntegrationTest {
 
         ArgumentCaptor<ResumeAnalysisMessage> captor = ArgumentCaptor.forClass(ResumeAnalysisMessage.class);
         verify(rabbitTemplate).convertAndSend(
-                org.mockito.ArgumentMatchers.eq("ats.exchange.test"),
-                org.mockito.ArgumentMatchers.eq("resume.ai.analysis.test"),
+                org.mockito.ArgumentMatchers.eq(RabbitMQConfig.EXCHANGE),
+                org.mockito.ArgumentMatchers.eq(RabbitMQConfig.RESUME_ANALYSIS_QUEUE),
                 captor.capture()
         );
 

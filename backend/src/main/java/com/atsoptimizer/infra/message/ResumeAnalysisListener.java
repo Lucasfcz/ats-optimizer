@@ -18,7 +18,7 @@ public class ResumeAnalysisListener {
         this.resumeAnalysisService = resumeAnalysisService;
     }
 
-    @RabbitListener(queues = "${ats.rabbitmq.queue:resume.ai.analysis}")
+    @RabbitListener(queues = RabbitMQConfig.RESUME_ANALYSIS_QUEUE)
     public void handleResumeAnalysis(ResumeAnalysisMessage message) {
         log.info("Received message from RabbitMQ queue for resume [{}] ({})", message.resumeId(), message.fileName());
         resumeAnalysisService.processAnalysis(message.resumeId(), message.extractedText());
