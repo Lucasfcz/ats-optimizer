@@ -17,6 +17,8 @@ public class ResumeAnalysis implements Serializable {
     private List<EducationItem> education;
     private List<CertificationItem> certifications;
     private List<LanguageItem> languages;
+    private List<SkillCategory> skillCategories;
+    private List<String> achievements;
     private String inferredObjective;
     private String overallProfile;
     private String structureEvaluation;
@@ -43,6 +45,8 @@ public class ResumeAnalysis implements Serializable {
             List<EducationItem> education,
             List<CertificationItem> certifications,
             List<LanguageItem> languages,
+            List<SkillCategory> skillCategories,
+            List<String> achievements,
             String inferredObjective,
             String overallProfile,
             String structureEvaluation,
@@ -61,21 +65,27 @@ public class ResumeAnalysis implements Serializable {
         this.headline = headline;
         this.contactInfo = contactInfo;
         this.about = about;
-        this.experiences = experiences != null ? List.copyOf(experiences) : Collections.emptyList();
-        this.education = education != null ? List.copyOf(education) : Collections.emptyList();
-        this.certifications = certifications != null ? List.copyOf(certifications) : Collections.emptyList();
-        this.languages = languages != null ? List.copyOf(languages) : Collections.emptyList();
+        this.experiences = safeCopy(experiences);
+        this.education = safeCopy(education);
+        this.certifications = safeCopy(certifications);
+        this.languages = safeCopy(languages);
+        this.skillCategories = safeCopy(skillCategories);
+        this.achievements = safeCopy(achievements);
         this.inferredObjective = inferredObjective;
         this.overallProfile = overallProfile;
         this.structureEvaluation = structureEvaluation;
         this.atsCompatibilitySummary = atsCompatibilitySummary;
-        this.keywords = keywords != null ? List.copyOf(keywords) : Collections.emptyList();
-        this.missingKeywords = missingKeywords != null ? List.copyOf(missingKeywords) : Collections.emptyList();
-        this.inconsistencies = inconsistencies != null ? List.copyOf(inconsistencies) : Collections.emptyList();
-        this.strengths = strengths != null ? List.copyOf(strengths) : Collections.emptyList();
-        this.weaknesses = weaknesses != null ? List.copyOf(weaknesses) : Collections.emptyList();
-        this.improvementSuggestions = improvementSuggestions != null ? List.copyOf(improvementSuggestions) : Collections.emptyList();
+        this.keywords = safeCopy(keywords);
+        this.missingKeywords = safeCopy(missingKeywords);
+        this.inconsistencies = safeCopy(inconsistencies);
+        this.strengths = safeCopy(strengths);
+        this.weaknesses = safeCopy(weaknesses);
+        this.improvementSuggestions = safeCopy(improvementSuggestions);
         this.analyzedAt = analyzedAt != null ? analyzedAt : LocalDateTime.now();
+    }
+
+    private static <T> List<T> safeCopy(List<T> list) {
+        return list != null ? List.copyOf(list) : Collections.emptyList();
     }
 
     public Long getResumeId() {
@@ -116,6 +126,14 @@ public class ResumeAnalysis implements Serializable {
 
     public List<LanguageItem> getLanguages() {
         return languages;
+    }
+
+    public List<SkillCategory> getSkillCategories() {
+        return skillCategories;
+    }
+
+    public List<String> getAchievements() {
+        return achievements;
     }
 
     public String getInferredObjective() {

@@ -7,6 +7,7 @@ import com.atsoptimizer.infra.ai.dto.EducationDto;
 import com.atsoptimizer.infra.ai.dto.ExperienceDto;
 import com.atsoptimizer.infra.ai.dto.LanguageDto;
 import com.atsoptimizer.infra.ai.dto.ResumeAnalysisResult;
+import com.atsoptimizer.infra.ai.dto.SkillCategoryDto;
 import com.atsoptimizer.infra.ai.exception.AiProcessingException;
 import com.atsoptimizer.modules.resume.domain.Resume;
 import com.atsoptimizer.modules.resume.domain.ResumeStatus;
@@ -82,6 +83,7 @@ class ResumeAnalysisServiceTest {
         );
 
         LanguageDto language = new LanguageDto("Inglês", "Avançado");
+        SkillCategoryDto skillCategory = new SkillCategoryDto("Linguagens", List.of("Java", "SQL"));
 
         ResumeAnalysisResult aiResult = new ResumeAnalysisResult(
                 "Lucas Silva",
@@ -92,6 +94,8 @@ class ResumeAnalysisServiceTest {
                 List.of(education),
                 List.of(certification),
                 List.of(language),
+                List.of(skillCategory),
+                List.of("Medalhista de Bronze na OPEI 2026"),
                 "Desenvolvedor Backend Sênior",
                 "Perfil sólido com forte aderência técnica",
                 "Estrutura clara com títulos adequados para ATS",
@@ -126,6 +130,9 @@ class ResumeAnalysisServiceTest {
         assertThat(resume.getAnalysis().getCertifications().get(0).name()).isEqualTo("AWS Certified Cloud Practitioner");
         assertThat(resume.getAnalysis().getLanguages()).hasSize(1);
         assertThat(resume.getAnalysis().getLanguages().get(0).language()).isEqualTo("Inglês");
+        assertThat(resume.getAnalysis().getSkillCategories()).hasSize(1);
+        assertThat(resume.getAnalysis().getSkillCategories().get(0).categoryName()).isEqualTo("Linguagens");
+        assertThat(resume.getAnalysis().getAchievements()).containsExactly("Medalhista de Bronze na OPEI 2026");
         assertThat(resume.getAnalysis().getScore()).isEqualTo(88);
         assertThat(resume.getAnalysis().getInferredObjective()).isEqualTo("Desenvolvedor Backend Sênior");
         assertThat(resume.getAnalysis().getKeywords()).contains("Java", "Spring Boot");

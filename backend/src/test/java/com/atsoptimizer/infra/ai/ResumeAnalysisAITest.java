@@ -44,6 +44,8 @@ class ResumeAnalysisAITest {
                 List.of(),
                 List.of(),
                 List.of(),
+                List.of(),
+                List.of(),
                 "Desenvolvedor Backend",
                 "Perfil forte",
                 "Formatação compatível",

@@ -11,6 +11,8 @@ public record ResumeAnalysisResult(
         List<EducationDto> education,
         List<CertificationDto> certifications,
         List<LanguageDto> languages,
+        List<SkillCategoryDto> skillCategories,
+        List<String> achievements,
         String inferredObjective,
         String overallProfile,
         String structureEvaluation,

@@ -46,6 +46,8 @@ class AiClientIntegrationTest {
                 List.of(),
                 List.of(),
                 List.of(),
+                List.of(),
+                List.of(),
                 "Backend Engineer",
                 "Perfil forte",
                 "Boa estrutura",

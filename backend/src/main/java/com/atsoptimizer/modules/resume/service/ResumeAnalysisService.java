@@ -7,6 +7,7 @@ import com.atsoptimizer.infra.ai.dto.EducationDto;
 import com.atsoptimizer.infra.ai.dto.ExperienceDto;
 import com.atsoptimizer.infra.ai.dto.LanguageDto;
 import com.atsoptimizer.infra.ai.dto.ResumeAnalysisResult;
+import com.atsoptimizer.infra.ai.dto.SkillCategoryDto;
 import com.atsoptimizer.modules.resume.domain.CertificationItem;
 import com.atsoptimizer.modules.resume.domain.ContactInfo;
 import com.atsoptimizer.modules.resume.domain.EducationItem;
@@ -14,6 +15,7 @@ import com.atsoptimizer.modules.resume.domain.ExperienceItem;
 import com.atsoptimizer.modules.resume.domain.LanguageItem;
 import com.atsoptimizer.modules.resume.domain.Resume;
 import com.atsoptimizer.modules.resume.domain.ResumeAnalysis;
+import com.atsoptimizer.modules.resume.domain.SkillCategory;
 import com.atsoptimizer.modules.resume.exception.ResumeNotFoundException;
 import com.atsoptimizer.modules.resume.repository.ResumeRepository;
 import org.slf4j.Logger;
@@ -65,6 +67,8 @@ public class ResumeAnalysisService {
                     mapEducation(dto.education()),
                     mapCertifications(dto.certifications()),
                     mapLanguages(dto.languages()),
+                    mapSkillCategories(dto.skillCategories()),
+                    dto.achievements(),
                     dto.inferredObjective(),
                     dto.overallProfile(),
                     dto.structureEvaluation(),
@@ -154,6 +158,18 @@ public class ResumeAnalysisService {
                 .map(l -> new LanguageItem(
                         l.language(),
                         l.proficiency()
+                ))
+                .toList();
+    }
+
+    private List<SkillCategory> mapSkillCategories(List<SkillCategoryDto> dtoList) {
+        if (dtoList == null) {
+            return Collections.emptyList();
+        }
+        return dtoList.stream()
+                .map(s -> new SkillCategory(
+                        s.categoryName(),
+                        s.skills()
                 ))
                 .toList();
     }
