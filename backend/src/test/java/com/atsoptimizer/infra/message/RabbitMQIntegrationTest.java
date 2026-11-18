@@ -1,6 +1,13 @@
 package com.atsoptimizer.infra.message;
 
+import com.atsoptimizer.infra.message.dto.JobMatchGenerationMessage;
+import com.atsoptimizer.infra.message.dto.JobMatchMessage;
 import com.atsoptimizer.infra.message.dto.ResumeAnalysisMessage;
+import com.atsoptimizer.modules.jobmatch.domain.JobMatch;
+import com.atsoptimizer.modules.jobmatch.domain.JobMatchStatus;
+import com.atsoptimizer.modules.jobmatch.domain.OptimizationMode;
+import com.atsoptimizer.modules.jobmatch.repository.JobMatchRepository;
+import com.atsoptimizer.modules.jobmatch.service.JobMatchProcessingService;
 import com.atsoptimizer.modules.resume.domain.Resume;
 import com.atsoptimizer.modules.resume.domain.ResumeStatus;
 import com.atsoptimizer.modules.resume.repository.ResumeRepository;
@@ -91,6 +98,12 @@ class RabbitMQIntegrationTest {
     @MockitoBean
     private ResumeRepository resumeRepository;
 
+    @MockitoBean
+    private JobMatchProcessingService jobMatchProcessingService;
+
+    @MockitoBean
+    private JobMatchRepository jobMatchRepository;
+
     @Autowired
     private ResumeEventPublisher resumeEventPublisher;
 
@@ -99,6 +112,15 @@ class RabbitMQIntegrationTest {
 
     @Autowired
     private ResumeAnalysisDlqListener resumeAnalysisDlqListener;
+
+    @Autowired
+    private JobMatchEventPublisher jobMatchEventPublisher;
+
+    @Autowired
+    private JobMatchListeners jobMatchListeners;
+
+    @Autowired
+    private JobMatchDlqListener jobMatchDlqListener;
 
     @Test
     @DisplayName("Should verify Main RabbitMQ Topic Exchange, Queues and exact Bindings topology configuration")
@@ -237,5 +259,44 @@ class RabbitMQIntegrationTest {
         assertThat(resume.getStatus()).isEqualTo(ResumeStatus.FAILED);
         assertThat(resume.getErrorMessage()).isEqualTo("OpenAI Rate Limit Exceeded");
         verify(resumeRepository).save(resume);
+    }
+
+    @Test
+    @DisplayName("Should verify JobMatchEventPublisher routes messages to parse, audit and generate queues")
+    void shouldPublishJobMatchMessagesToCorrectQueues() {
+        JobMatchMessage parseMsg = new JobMatchMessage(10L, 1L);
+        JobMatchMessage auditMsg = new JobMatchMessage(10L, 1L);
+        JobMatchGenerationMessage genMsg = new JobMatchGenerationMessage(10L, OptimizationMode.TRUTHFUL);
+
+        jobMatchEventPublisher.publishForJobParsing(parseMsg);
+        jobMatchEventPublisher.publishForFitAudit(auditMsg);
+        jobMatchEventPublisher.publishForResumeGeneration(genMsg);
+
+        verify(rabbitTemplate).convertAndSend(RabbitMQConfig.EXCHANGE, RabbitMQConfig.JOB_MATCH_PARSE_QUEUE, parseMsg);
+        verify(rabbitTemplate).convertAndSend(RabbitMQConfig.EXCHANGE, RabbitMQConfig.JOB_MATCH_AUDIT_QUEUE, auditMsg);
+        verify(rabbitTemplate).convertAndSend(RabbitMQConfig.EXCHANGE, RabbitMQConfig.JOB_MATCH_GENERATE_QUEUE, genMsg);
+    }
+
+    @Test
+    @DisplayName("Should verify JobMatchListeners delegate to JobMatchProcessingService and DLQ listener marks FAILED")
+    void shouldDelegateJobMatchListenersAndHandleDlq() {
+        jobMatchListeners.handleJobParsing(new JobMatchMessage(10L, 1L));
+        verify(jobMatchProcessingService).processJobParsing(10L);
+
+        jobMatchListeners.handleFitAudit(new JobMatchMessage(10L, 1L));
+        verify(jobMatchProcessingService).processFitAudit(10L);
+
+        jobMatchListeners.handleResumeGeneration(new JobMatchGenerationMessage(10L, OptimizationMode.IDEAL));
+        verify(jobMatchProcessingService).processResumeGeneration(10L, OptimizationMode.IDEAL);
+
+        Resume resume = new Resume(1L, "cv.pdf", "application/pdf", 100L, "Texto");
+        JobMatch jobMatch = new JobMatch(10L, resume, "Vaga Java");
+        when(jobMatchRepository.findById(10L)).thenReturn(Optional.of(jobMatch));
+
+        jobMatchDlqListener.handleAuditDlq(new JobMatchMessage(10L, 1L), "Gemini API 429");
+
+        assertThat(jobMatch.getStatus()).isEqualTo(JobMatchStatus.FAILED);
+        assertThat(jobMatch.getErrorMessage()).isEqualTo("Gemini API 429");
+        verify(jobMatchRepository).save(jobMatch);
     }
 }
